@@ -1,0 +1,30 @@
+
+services:
+  multi-pgsql:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: multi-pgsql
+    tty: true
+    stdin_open: true
+    environment:
+      - PATH=/usr/lib/postgresql/12/bin:/usr/lib/postgresql/13/bin:/usr/lib/postgresql/14/bin:/usr/lib/postgresql/15/bin:$PATH
+    volumes:
+      - .:/app
+      - ./backups:/app/backups
+    command: ["tail", "-f", "/dev/null"]
+
+#   postgres:
+#     image: postgres:15
+#     container_name: postgres-db
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: password
+#       POSTGRES_DB: my_database
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - pg_data:/var/lib/postgresql/data
+# 
+# volumes:
+#   pg_data:

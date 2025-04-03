@@ -1,0 +1,53 @@
+###
+GET http://localhost:8080/v1/datasources
+Content-Type: application/json
+Accept: application/json
+
+###
+POST http://localhost:8080/v1/datasources
+Content-Type: application/json
+Accept: application/json
+
+{
+  "host": "localhost",
+  "database": "db-test",
+  "port": 5432,
+  "username": "postgres",
+  "password": "root",
+  "ssl_mode": "disable",
+  "cron": {
+    "cron_expr": "0 27 15 * * *",
+    "description": "Executar a cada 1 segundo",
+    "enabled": true
+  }
+}
+
+###
+GET http://localhost:8080/v1/datasources/75d9e015-d291-4a16-aada-449803cf395e
+Content-Type: application/json
+Accept: application/json
+
+###
+PUT http://localhost:8080/v1/datasources/c92b0330-363e-436c-9bea-c99aa4ba6bfb
+Content-Type: application/json
+Accept: application/json
+
+{
+  "host": "localhost",
+  "database": "db-test",
+  "port": 5432,
+  "username": "postgres",
+  "password": "root",
+  "ssl_mode": "disable",
+  "cron": {
+    "cron_expr": "0 27 15 * * *",
+    "description": "Executar a cada 1 segundo",
+    "enabled": true
+  }
+}
+
+
+###
+DELETE  http://localhost:8080/v1/datasources/bd87c516-905a-4d2c-a64d-46173e371da1
+Content-Type: application/json
+Accept: application/json
