@@ -1,6 +1,9 @@
 package datasource
 
-import "github.com/google/uuid"
+import (
+	"github.com/bvaledev/go-database-backaup-management/internal/pkg/encryption"
+	"github.com/google/uuid"
+)
 
 type CronExpr struct {
 	CronExpr    string `json:"cron_expr"`
@@ -22,7 +25,7 @@ type Datasource struct {
 
 func NewDatasource(host, database, username, password, sslMode string, port int32, cronExpr, description string, enabled bool) (*Datasource, error) {
 	id := uuid.New()
-	encodedPassword, err := Encrypt(password)
+	encodedPassword, err := encryption.Encrypt(password)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +47,7 @@ func (d Datasource) Encoded() (Datasource, error) {
 	if datasource.IsEncoded {
 		return datasource, nil
 	}
-	encodedPassword, err := Encrypt(datasource.Password)
+	encodedPassword, err := encryption.Encrypt(datasource.Password)
 	if err != nil {
 		return Datasource{}, err
 	}
@@ -58,7 +61,7 @@ func (d Datasource) Decoded() (Datasource, error) {
 	if !datasource.IsEncoded {
 		return datasource, nil
 	}
-	decodedPassword, err := Decrypt(d.Password)
+	decodedPassword, err := encryption.Decrypt(d.Password)
 	if err != nil {
 		return Datasource{}, err
 	}

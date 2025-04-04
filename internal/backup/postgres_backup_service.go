@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bvaledev/go-database-backaup-management/internal/datasource"
+	"github.com/bvaledev/go-database-backaup-management/internal/pkg/compression"
 )
 
 var (
@@ -145,7 +146,7 @@ func (pbs *PostgresBackupService) Backup(ds datasource.Datasource, outputFile st
 	}
 
 	// Sempre gzip
-	if err := CompressToGzip(tmpOutput, finalOutput); err != nil {
+	if err := compression.CompressToGzip(tmpOutput, finalOutput); err != nil {
 		return string(output), fmt.Errorf("backup realizado, mas erro ao compactar: %w", err)
 	}
 
@@ -268,7 +269,7 @@ func (pbs *PostgresBackupService) Restore(ds datasource.Datasource, inputFile st
 
 	originalInput := inputFile
 	if isGzipped {
-		tmp, err := DecompressGzip(inputFile)
+		tmp, err := compression.DecompressGzip(inputFile)
 		if err != nil {
 			return "", fmt.Errorf("erro ao descompactar %s: %w", inputFile, err)
 		}

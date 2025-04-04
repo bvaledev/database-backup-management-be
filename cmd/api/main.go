@@ -13,6 +13,7 @@ import (
 	"github.com/bvaledev/go-database-backaup-management/internal/datasource"
 	"github.com/bvaledev/go-database-backaup-management/internal/db"
 	"github.com/bvaledev/go-database-backaup-management/internal/job"
+	"github.com/bvaledev/go-database-backaup-management/internal/pkg/encryption"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -24,6 +25,9 @@ func init() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Erro ao carregar .env")
+	}
+	if err := encryption.InitEncryptionKey(); err != nil {
+		log.Fatal("Erro ao inicializar chave de criptografia:", err)
 	}
 }
 

@@ -1,4 +1,4 @@
-package datasource
+package encryption
 
 import (
 	"crypto/aes"
@@ -9,8 +9,6 @@ import (
 	"io"
 	"log"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 func GenerateKeyBase64(length int) string {
@@ -25,17 +23,19 @@ func GenerateKeyBase64(length int) string {
 // chave 32 bytes (AES-256)
 var encryptionKey []byte
 
-func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Erro ao carregar .env")
-	}
+func InitEncryptionKey() error {
 	keyStr := os.Getenv("ENCRYPTION_KEY")
 	keyBytes, err := base64.StdEncoding.DecodeString(keyStr)
 	if err != nil {
 		log.Fatal("Erro ao decodificar a chave:", err)
 	}
+
+	if len(keyBytes) != 32 {
+		return fmt.Errorf("a chave decodificada deve ter 32 bytes, mas tem %d bytes", len(keyBytes))
+	}
+
 	encryptionKey = keyBytes
+	return nil
 }
 
 func Encrypt(text string) (string, error) {

@@ -91,10 +91,6 @@ func (jm *JobManager) LoadJobsFromDB() {
 
 		// Adiciona (ou re-adiciona) a tarefa
 		entryID, err := jm.cron.AddFunc(datasource.Cron.CronExpr, jm.jobCommand.Command(datasource))
-		// entryID, err := jm.cron.AddFunc(datasource.Cron.CronExpr,func() {
-		// 	log.Printf("[JOB %s %s] Executando: %s", datasource.ID, datasource.Database, datasource.Cron.Description)
-		//   Aqui você chama o seu serviço real (ex: backup)
-		// })
 
 		if err != nil {
 			log.Printf("Erro ao adicionar tarefa ID %s: %v", datasource.ID, err)
@@ -110,11 +106,5 @@ func (jm *JobManager) LoadJobsFromDB() {
 			delete(jm.jobs, id)
 			delete(jm.jobExprs, id)
 		}
-	}
-}
-
-func BackupPostgres2(datasource datasource.Datasource) func() {
-	return func() {
-		log.Printf("[JOB %s] Datasource: %s", datasource.ID, datasource.Database)
 	}
 }
