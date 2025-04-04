@@ -1,17 +1,6 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TABLE schedule_tasks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    cron_expr TEXT NOT NULL,
-    description TEXT,
-    enabled BOOLEAN NOT NULL,
-);
-
-INSERT INTO scheduled_tasks (id, cron_expr, description, enabled) VALUES
-(uuid_generate_v4(),'*/1 * * * *', 'Executar a cada 1 minuto', true),
-(uuid_generate_v4(),'0 0 * * *', 'Executar todo dia à meia-noite', true);
-
 CREATE TABLE datasources (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     database VARCHAR NOT NULL,
@@ -19,8 +8,20 @@ CREATE TABLE datasources (
     port INTEGER NOT NULL,
     ssl_mode VARCHAR NOT NULL,
     username VARCHAR NOT NULL,
-    password VARCHAR NOT NULL
+    password VARCHAR NOT NULL,
     cron_expr TEXT NOT NULL,
     description TEXT,
-    enabled BOOLEAN NOT NULL,
+    enabled BOOLEAN NOT NULL
+);
+
+CREATE TABLE backups (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    datasource_id UUID NOT NULL REFERENCES datasources(id) ON DELETE CASCADE,
+    trigger VARCHAR NOT NULL CHECK (trigger IN ('manual', 'cron')),
+    status VARCHAR NOT NULL CHECK (status IN ('initialized', 'completed', 'failed')),
+    file_name VARCHAR,
+    file_size BIGINT,
+    started_at TIMESTAMP,
+    finished_at TIMESTAMP,
+    restored_at TIMESTAMP
 );
