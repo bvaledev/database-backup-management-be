@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -46,7 +47,8 @@ func main() {
 	jobManager.Start()
 	defer jobManager.Stop()
 
-	server := &http.Server{Addr: "0.0.0.0:8080", Handler: appRouters(datasourceController)}
+	appPort := os.Getenv("PORT")
+	server := &http.Server{Addr: fmt.Sprintf("0.0.0.0:%s", appPort), Handler: appRouters(datasourceController)}
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
 
 	// Listen for syscall signals for process to interrupt/quit
