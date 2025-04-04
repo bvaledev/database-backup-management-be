@@ -1,10 +1,12 @@
 package datasource
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/bvaledev/go-database-backaup-management/internal/utils"
+	"github.com/go-chi/chi"
 )
 
 type DatasourceController struct {
@@ -15,79 +17,75 @@ func NewDatasourceController(datasourceRepo IDatasourceRepository) *DatasourceCo
 	return &DatasourceController{datasourceRepo}
 }
 
-func (c *DatasourceController) List(ctx *gin.Context) {
-	enabledStr := ctx.Query("enabled")
+func (c *DatasourceController) List(w http.ResponseWriter, r *http.Request) {
+	enabledStr := r.URL.Query().Get("enabled")
 	var (
 		datasources []Datasource
 		err         error
 	)
+
 	if enabledStr == "" {
 		datasources, err = c.datasourceRepo.GetDatasources(nil)
 	} else {
 		enabled, errConv := strconv.ParseBool(enabledStr)
 		if errConv != nil {
-			ctx.JSON(400, gin.H{"error": "param 'enabled' inválido"})
+			utils.JSONError(w, http.StatusBadRequest, "parametro 'enabled' inválido")
 			return
 		}
 		datasources, err = c.datasourceRepo.GetDatasources(&enabled)
 	}
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-		})
+		utils.JSONError(w, http.StatusInternalServerError, "não foi possível retornar os datasources")
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{
-		"data": datasources,
-	})
+
+	utils.JSONResponse(w, http.StatusOK, datasources)
 }
 
-func (c *DatasourceController) Get(ctx *gin.Context) {
-	datasourceId := ctx.Param("id")
+func (c *DatasourceController) Get(w http.ResponseWriter, r *http.Request) {
+	datasourceId := chi.URLParam(r, "id")
 	datasource, err := c.datasourceRepo.GetDatasource(datasourceId)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Datasource não existe", "details": err.Error()})
+		utils.JSONError(w, http.StatusNotFound, "datasource não encontrado")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"data": datasource,
-	})
+	utils.JSONResponse(w, http.StatusOK, datasource)
 }
 
-func (c *DatasourceController) Create(ctx *gin.Context) {
+func (c *DatasourceController) Create(w http.ResponseWriter, r *http.Request) {
 	var input CreateDatasourceDto
-	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(400, gin.H{"error": "JSON inválido", "details": err.Error()})
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		utils.JSONError(w, http.StatusUnprocessableEntity, "json inválido")
 		return
 	}
 	datasource, err := NewDatasource(input.Host, input.Database, input.Username, input.Password, input.SSLMode, input.Port, input.Cron.CronExpr, input.Cron.Description, input.Cron.Enabled)
 	if err != nil {
-		ctx.JSON(400, gin.H{"error": "Dados inválido", "details": err.Error()})
+		utils.JSONError(w, http.StatusUnprocessableEntity, "datasource inválido")
 		return
 	}
 	err = c.datasourceRepo.CreateDatasource(*datasource)
 	if err != nil {
-		ctx.JSON(400, gin.H{"error": "Não foi possível criar o datasource", "details": err.Error()})
+		utils.JSONError(w, http.StatusUnprocessableEntity, "não foi possivel cadastrar o datasource")
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{
-		"data": gin.H{
-			"id": datasource.ID,
-		},
-	})
+	response := map[string]string{
+		"id": datasource.ID,
+	}
+
+	utils.JSONResponse(w, http.StatusCreated, response)
 }
 
-func (c *DatasourceController) Update(ctx *gin.Context) {
-	datasourceId := ctx.Param("id")
+func (c *DatasourceController) Update(w http.ResponseWriter, r *http.Request) {
+	datasourceId := chi.URLParam(r, "id")
 	var input UpdateDatasourceDto
-	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(400, gin.H{"error": "JSON inválido", "details": err.Error()})
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		utils.JSONError(w, http.StatusBadRequest, "json inválido")
 		return
 	}
 	datasource, err := c.datasourceRepo.GetDatasource(datasourceId)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Datasource não existe", "details": err.Error()})
+		utils.JSONError(w, http.StatusNotFound, "o datasource não existe")
 		return
 	}
 
@@ -103,19 +101,19 @@ func (c *DatasourceController) Update(ctx *gin.Context) {
 
 	err = c.datasourceRepo.UpdateDatasource(datasource)
 	if err != nil {
-		ctx.JSON(400, gin.H{"error": "Schedule não foi salvo", "details": err.Error()})
+		utils.JSONError(w, http.StatusUnprocessableEntity, "não foi possível atualizar o datasource")
 		return
 	}
-
-	ctx.JSON(http.StatusNoContent, nil)
+	w.WriteHeader(http.StatusNoContent)
 }
 
-func (c *DatasourceController) Delete(ctx *gin.Context) {
-	datasourceId := ctx.Param("id")
+func (c *DatasourceController) Delete(w http.ResponseWriter, r *http.Request) {
+	datasourceId := chi.URLParam(r, "id")
 	err := c.datasourceRepo.DeleteDatasource(datasourceId)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Schedule não existe", "details": err.Error()})
+		utils.JSONError(w, http.StatusNotFound, "o datasource não existe")
 		return
 	}
-	ctx.JSON(http.StatusNoContent, nil)
+
+	w.WriteHeader(http.StatusNoContent)
 }

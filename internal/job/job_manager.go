@@ -39,6 +39,8 @@ func NewJobManager(datasourceRepo datasource.IDatasourceRepository, jobCommand I
 }
 
 func (jm *JobManager) Start() {
+	log.Println("Scheduler iniciado.")
+
 	jm.LoadJobsFromDB()
 	jm.cron.Start()
 

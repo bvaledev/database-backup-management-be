@@ -13,7 +13,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func generateKeyBase64(length int) string {
+func GenerateKeyBase64(length int) string {
 	key := make([]byte, length)
 	_, err := rand.Read(key)
 	if err != nil {
