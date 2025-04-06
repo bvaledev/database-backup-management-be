@@ -1,4 +1,4 @@
-package datasource
+package dto
 
 type CronExprDto struct {
 	CronExpr    string `json:"cron_expr"`

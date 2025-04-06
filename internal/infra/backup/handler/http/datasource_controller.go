@@ -1,26 +1,29 @@
-package datasource
+package http
 
 import (
 	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/bvaledev/go-database-backaup-management/internal/utils"
+	"github.com/bvaledev/database-backup-management-be/internal/domain/backup/contract"
+	"github.com/bvaledev/database-backup-management-be/internal/domain/backup/dto"
+	"github.com/bvaledev/database-backup-management-be/internal/domain/backup/entity"
+	"github.com/bvaledev/database-backup-management-be/internal/utils"
 	"github.com/go-chi/chi"
 )
 
 type DatasourceController struct {
-	datasourceRepo IDatasourceRepository
+	datasourceRepo contract.IDatasourceRepository
 }
 
-func NewDatasourceController(datasourceRepo IDatasourceRepository) *DatasourceController {
+func NewDatasourceController(datasourceRepo contract.IDatasourceRepository) *DatasourceController {
 	return &DatasourceController{datasourceRepo}
 }
 
 func (c *DatasourceController) List(w http.ResponseWriter, r *http.Request) {
 	enabledStr := r.URL.Query().Get("enabled")
 	var (
-		datasources []Datasource
+		datasources []entity.Datasource
 		err         error
 	)
 
@@ -54,12 +57,12 @@ func (c *DatasourceController) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *DatasourceController) Create(w http.ResponseWriter, r *http.Request) {
-	var input CreateDatasourceDto
+	var input dto.CreateDatasourceDto
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		utils.JSONError(w, http.StatusUnprocessableEntity, "json inválido")
 		return
 	}
-	datasource, err := NewDatasource(input.Host, input.Database, input.Username, input.Password, input.SSLMode, input.Port, input.Cron.CronExpr, input.Cron.Description, input.Cron.Enabled)
+	datasource, err := entity.NewDatasource(input.Host, input.Database, input.Username, input.Password, input.SSLMode, input.Port, input.Cron.CronExpr, input.Cron.Description, input.Cron.Enabled)
 	if err != nil {
 		utils.JSONError(w, http.StatusUnprocessableEntity, "datasource inválido")
 		return
@@ -78,7 +81,7 @@ func (c *DatasourceController) Create(w http.ResponseWriter, r *http.Request) {
 
 func (c *DatasourceController) Update(w http.ResponseWriter, r *http.Request) {
 	datasourceId := chi.URLParam(r, "id")
-	var input UpdateDatasourceDto
+	var input dto.UpdateDatasourceDto
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		utils.JSONError(w, http.StatusBadRequest, "json inválido")
 		return

@@ -1,4 +1,4 @@
-module github.com/bvaledev/go-database-backaup-management
+module github.com/bvaledev/database-backup-management-be
 
 go 1.23.3
 

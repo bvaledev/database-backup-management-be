@@ -1,4 +1,4 @@
-package job
+package backup
 
 import (
 	"context"
@@ -6,26 +6,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bvaledev/go-database-backaup-management/internal/datasource"
+	"github.com/bvaledev/database-backup-management-be/internal/domain/backup/contract"
+	"github.com/bvaledev/database-backup-management-be/internal/domain/backup/entity"
 	"github.com/robfig/cron/v3"
 )
-
-type IJobCMD interface {
-	Command(datasource datasource.Datasource) func()
-}
 
 type JobManager struct {
 	cron           *cron.Cron
 	jobs           map[string]cron.EntryID
 	jobExprs       map[string]string
 	jobLock        sync.Mutex
-	datasourceRepo datasource.IDatasourceRepository
+	datasourceRepo contract.IDatasourceRepository
 	ctx            context.Context
 	cancelCtx      context.CancelFunc
-	jobCommand     IJobCMD
+	jobCommand     contract.ICommand
 }
 
-func NewJobManager(datasourceRepo datasource.IDatasourceRepository, jobCommand IJobCMD) *JobManager {
+func NewJobManager(datasourceRepo contract.IDatasourceRepository, jobCommand contract.ICommand) *JobManager {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &JobManager{
 		cron:           cron.New(cron.WithSeconds()),
@@ -75,13 +72,13 @@ func (jm *JobManager) LoadJobsFromDB() {
 		return
 	}
 
-	activeTasks := make(map[string]datasource.Datasource)
+	activeTasks := make(map[string]entity.Datasource)
 
-	for _, datasource := range datasources {
-		activeTasks[datasource.ID] = datasource
-		existingID, exists := jm.jobs[datasource.ID]
+	for _, ds := range datasources {
+		activeTasks[ds.ID] = ds
+		existingID, exists := jm.jobs[ds.ID]
 		if exists {
-			isCronChanged := jm.jobExprs[datasource.ID] != datasource.Cron.CronExpr
+			isCronChanged := jm.jobExprs[ds.ID] != ds.Cron.CronExpr
 			if isCronChanged {
 				jm.cron.Remove(existingID)
 			} else {
@@ -90,14 +87,14 @@ func (jm *JobManager) LoadJobsFromDB() {
 		}
 
 		// Adiciona (ou re-adiciona) a tarefa
-		entryID, err := jm.cron.AddFunc(datasource.Cron.CronExpr, jm.jobCommand.Command(datasource))
+		entryID, err := jm.cron.AddFunc(ds.Cron.CronExpr, jm.jobCommand.Command(ds, entity.BackupCron))
 
 		if err != nil {
-			log.Printf("Erro ao adicionar tarefa ID %s: %v", datasource.ID, err)
+			log.Printf("Erro ao adicionar tarefa ID %s: %v", ds.ID, err)
 			continue
 		}
-		jm.jobs[datasource.ID] = entryID
-		jm.jobExprs[datasource.ID] = datasource.Cron.CronExpr
+		jm.jobs[ds.ID] = entryID
+		jm.jobExprs[ds.ID] = ds.Cron.CronExpr
 	}
 
 	for id, entryID := range jm.jobs {

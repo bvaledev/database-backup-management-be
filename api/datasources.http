@@ -4,9 +4,11 @@ Content-Type: application/json
 Accept: application/json
 
 ###
-GET http://localhost:8080/v1/datasources/cf8669df-b559-4dfc-b23c-c2fe0a511560
+GET http://localhost:8080/v1/datasources/6aed1767-af62-4601-bf6c-5db9f6e74104
 Content-Type: application/json
 Accept: application/json
+
+
 
 ###
 POST http://localhost:8080/v1/datasources
@@ -15,35 +17,37 @@ Accept: application/json
 
 {
   "host": "localhost",
-  "database": "db-test",
+  "database": "fincycle",
   "port": 5432,
   "username": "postgres",
   "password": "root",
   "ssl_mode": "disable",
   "cron": {
-    "cron_expr": "0 27 15 * * *",
-    "description": "Executar a cada 1 segundo",
-    "enabled": false
+    "cron_expr": "0 */5 * * * *",
+    "description": "Executar a cada 5 minutos",
+    "enabled": true
   }
 }
 
+
+
 ###
-PUT http://localhost:8080/v1/datasources/c92b0330-363e-436c-9bea-c99aa4ba6bfb
+PUT http://localhost:8080/v1/datasources/6aed1767-af62-4601-bf6c-5db9f6e74104
 Content-Type: application/json
 Accept: application/json
 
 {
   "host": "localhost",
-  "database": "teste-restore",
-  "port": 5432,
-  "username": "postgres",
-  "password": "root",
-  "ssl_mode": "disable",
-  "cron": {
-    "cron_expr": "0 27 15 * * *",
-    "description": "Executar a cada 1 segundo",
-    "enabled": true
-  }
+    "database": "fincycle",
+    "port": 5432,
+    "username": "postgres",
+    "ssl_mode": "disable",
+    "password": "root",
+    "cron": {
+      "cron_expr": "0 0 20 * * *",
+      "description": "Executar a cada 5 minutos",
+      "enabled": true
+    }
 }
 
 

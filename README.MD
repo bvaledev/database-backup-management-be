@@ -1,4 +1,8 @@
-# 📄 Go Database Backup Management
+<p align="center" dir="auto">
+  <img src="./logo.png" width="120" alt="DBBM Logo" style="max-width: 100%;">
+</p>
+
+# Database Backup Management
 
 Sistema em Go para gerenciamento automatizado de backups de bancos de dados PostgreSQL. Oferece suporte a múltiplos bancos cadastrados, backups agendados, compactação com Gzip e API RESTful.
 
@@ -6,16 +10,15 @@ Sistema em Go para gerenciamento automatizado de backups de bancos de dados Post
 
 ## 🚀 Funcionalidades
 
-- 🔁 Backup agendado via cron
-- 💾 Exportação compactada em `.sql.gz` ou `.backup.gz`
-- ♻️ Restauração automática com descompactação e identificação do tipo
-- 🔐 Criptografia de senhas com AES-256
-- 🌐 API REST para gerenciar datasources e operações de backup
-- ⚖️ Configuração via `.env`
-- 📁 Diretório `./backups` gerenciado automaticamente
-- ⏰ Datasources com cron ativo executam backup automaticamente ao serem criados
-- ⚖️ API de restauração ainda em desenvolvimento
-
+- 🔁 Backup agendado via cron e disparado manualmente  
+- 💾 Exportação compactada em `.sql.gz` ou `.backup.gz`  
+- ♻️ Restauração automática com descompactação e identificação do tipo  
+- 🔐 Criptografia de senhas com AES-256  
+- 🌐 API REST para gerenciar datasources e operações de backup  
+- ⚖️ Configuração via `.env`  
+- 📁 Diretório `./backups` gerenciado automaticamente  
+- ⏰ Datasources com cron ativo executam backup automaticamente ao serem criados  
+- 🖥️ [Repositório frontend](https://github.com/bvaledev/database-backup-management-fe)
 ---
 
 ## ⚙️ Configuração
@@ -54,13 +57,20 @@ air
 
 ## 🧪 Endpoints disponíveis
 
-| Método | Rota                      | Descrição                         |
-|--------|---------------------------|-----------------------------------|
-| GET    | /v1/datasources           | Lista todos os datasources        |
-| GET    | /v1/datasources/{id}      | Retorna um datasource específico  |
-| POST   | /v1/datasources           | Cria um novo datasource           |
-| PUT    | /v1/datasources/{id}      | Atualiza um datasource            |
-| DELETE | /v1/datasources/{id}      | Remove um datasource              |
+Método | Rota                                          | Descrição
+------ | --------------------------------------------- | -------------------------------------------------
+GET    | /v1/datasources                               | Lista todos os datasources
+GET    | /v1/datasources/{id}                          | Retorna um datasource específico
+POST   | /v1/datasources                               | Cria um novo datasource
+PUT    | /v1/datasources/{id}                          | Atualiza um datasource
+DELETE | /v1/datasources/{id}                          | Remove um datasource
+GET    | /v1/backups?datasourceId                      | Lista todos os backups
+GET    | /v1/backups/{id}                              | Retorna um backup específico
+POST   | /v1/backups                                   | Cria um novo backup para um datasource específico
+POST   | /v1/backups/{id}/restore-backup?datasourceId= | Restaura um backup para um datasource
+DELETE | /v1/backups/{id}                              | Remove um backup e seu arquivos
+
+> Obs.: query param `?datasourceId=` é opcional.
 
 ---
 

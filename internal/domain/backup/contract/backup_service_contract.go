@@ -1,6 +1,6 @@
-package backup
+package contract
 
-import "github.com/bvaledev/go-database-backaup-management/internal/datasource"
+import "github.com/bvaledev/database-backup-management-be/internal/domain/backup/entity"
 
 type Mode string
 
@@ -9,9 +9,9 @@ const (
 	Plain  Mode = "p"
 )
 
-// DBBackupService define as operações essenciais de backup e restauração para bancos de dados.
+// IBackupService define as operações essenciais de backup e restauração para bancos de dados.
 // Implementações podem suportar diferentes motores como PostgreSQL, MySQL, etc.
-type DBBackupService interface {
+type IBackupService interface {
 	// TestConnection testa a conectividade com o banco de dados informado.
 	//
 	// Parâmetros:
@@ -19,7 +19,7 @@ type DBBackupService interface {
 	//
 	// Retorna:
 	// - Um erro caso a conexão falhe, ou nil se for bem-sucedida.
-	TestConnection(ds datasource.Datasource) error
+	TestConnection(ds entity.Datasource) error
 
 	// Backup realiza o backup completo do banco de dados no formato especificado.
 	//
@@ -34,8 +34,9 @@ type DBBackupService interface {
 	//
 	// Retorna:
 	// - A saída do comando pg_dump.
+	// - Arquivo de backup gerado.
 	// - Um erro, caso a execução falhe ou a compactação não seja concluída.
-	Backup(ds datasource.Datasource, outputFile string, format Mode) (string, error)
+	Backup(ds entity.Datasource, outputFile string, format Mode) (string, string, error)
 
 	// Restore realiza a restauração do banco a partir de um arquivo de backup compactado ou não.
 	//
@@ -50,14 +51,14 @@ type DBBackupService interface {
 	// Retorna:
 	// - A saída do comando de restauração.
 	// - Um erro, caso o processo falhe.
-	Restore(ds datasource.Datasource, inputFile string) (string, error)
+	Restore(ds entity.Datasource, inputFile string) (string, error)
 
 	// ClearDatabase remove todos os schemas do banco, exceto os padrões, e recria o schema "public".
-	ClearDatabase(ds datasource.Datasource) error
+	ClearDatabase(ds entity.Datasource) error
 
 	// CreateDatabase cria um novo banco de dados com o nome informado.
-	CreateDatabase(ds datasource.Datasource) error
+	CreateDatabase(ds entity.Datasource) error
 
 	// DropDatabase remove um banco de dados existente com o nome informado.
-	DropDatabase(ds datasource.Datasource) error
+	DropDatabase(ds entity.Datasource) error
 }

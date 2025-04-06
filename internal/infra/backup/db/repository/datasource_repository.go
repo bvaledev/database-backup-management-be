@@ -1,28 +1,26 @@
-package datasource
+package repository
 
-import "database/sql"
+import (
+	"database/sql"
+	"log"
 
-type IDatasourceRepository interface {
-	GetDatasources(enabled *bool) ([]Datasource, error)
-	GetDatasource(entityID string) (Datasource, error)
-	CreateDatasource(entity Datasource) error
-	UpdateDatasource(entity Datasource) error
-	DeleteDatasource(entityID string) error
-}
+	"github.com/bvaledev/database-backup-management-be/internal/domain/backup/contract"
+	"github.com/bvaledev/database-backup-management-be/internal/domain/backup/entity"
+)
 
 type DatasourceRepository struct {
 	db *sql.DB
 }
 
-var _ IDatasourceRepository = (*DatasourceRepository)(nil)
+var _ contract.IDatasourceRepository = (*DatasourceRepository)(nil)
 
 func NewDatasourceRepository(db *sql.DB) *DatasourceRepository {
 	return &DatasourceRepository{db}
 }
 
 // GetDatasource implements IDatasourceRepository.
-func (repo *DatasourceRepository) GetDatasource(entityID string) (Datasource, error) {
-	var datasource Datasource = Datasource{IsEncoded: true, Cron: &CronExpr{}}
+func (repo *DatasourceRepository) GetDatasource(entityID string) (entity.Datasource, error) {
+	var datasource entity.Datasource = entity.Datasource{Cron: &entity.CronExpr{}}
 
 	row := repo.db.QueryRow(`
 		SELECT id, host, database, port, username, password, ssl_mode, cron_expr, description, enabled
@@ -43,14 +41,14 @@ func (repo *DatasourceRepository) GetDatasource(entityID string) (Datasource, er
 		&datasource.Cron.Enabled,
 	)
 	if err != nil {
-		return Datasource{}, err
+		return entity.Datasource{}, err
 	}
 
 	return datasource, nil
 }
 
 // GetDatasource implements IDatasourceRepository.
-func (repo *DatasourceRepository) GetDatasources(enabled *bool) ([]Datasource, error) {
+func (repo *DatasourceRepository) GetDatasources(enabled *bool) ([]entity.Datasource, error) {
 	var (
 		rows *sql.Rows
 		err  error
@@ -74,9 +72,9 @@ func (repo *DatasourceRepository) GetDatasources(enabled *bool) ([]Datasource, e
 	}
 	defer rows.Close()
 
-	var datasources []Datasource = make([]Datasource, 0)
+	var datasources []entity.Datasource = make([]entity.Datasource, 0)
 	for rows.Next() {
-		var datasource Datasource = Datasource{IsEncoded: true, Cron: &CronExpr{}}
+		var datasource entity.Datasource = entity.Datasource{Cron: &entity.CronExpr{}}
 		err := rows.Scan(
 			&datasource.ID,
 			&datasource.Host,
@@ -90,7 +88,7 @@ func (repo *DatasourceRepository) GetDatasources(enabled *bool) ([]Datasource, e
 			&datasource.Cron.Enabled,
 		)
 		if err != nil {
-			return []Datasource{}, err
+			return []entity.Datasource{}, err
 		}
 		datasources = append(datasources, datasource)
 	}
@@ -99,7 +97,7 @@ func (repo *DatasourceRepository) GetDatasources(enabled *bool) ([]Datasource, e
 }
 
 // CreateDatasource implements IDatasourceRepository.
-func (repo *DatasourceRepository) CreateDatasource(entity Datasource) error {
+func (repo *DatasourceRepository) CreateDatasource(entity entity.Datasource) error {
 	stmt, err := repo.db.Prepare(`
 		INSERT INTO datasources (id, host, database, port, username, password, ssl_mode, cron_expr, description, enabled)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -108,7 +106,7 @@ func (repo *DatasourceRepository) CreateDatasource(entity Datasource) error {
 		return err
 	}
 
-	datasource, err := entity.Encoded()
+	datasource, err := entity.Encode()
 	if err != nil {
 		return err
 	}
@@ -131,7 +129,14 @@ func (repo *DatasourceRepository) CreateDatasource(entity Datasource) error {
 }
 
 // UpdateDatasource implements IDatasourceRepository.
-func (repo *DatasourceRepository) UpdateDatasource(entity Datasource) error {
+func (repo *DatasourceRepository) UpdateDatasource(entity entity.Datasource) error {
+	datasource, err := entity.Encode()
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Updating -> %+v", datasource)
+
 	stmt, err := repo.db.Prepare(`
 		UPDATE datasources
 		SET host=$2, database=$3, port=$4, username=$5, password=$6, ssl_mode=$7, cron_expr=$8, description=$9, enabled=$10
@@ -140,12 +145,6 @@ func (repo *DatasourceRepository) UpdateDatasource(entity Datasource) error {
 	if err != nil {
 		return err
 	}
-
-	datasource, err := entity.Encoded()
-	if err != nil {
-		return err
-	}
-
 	_, err = stmt.Exec(
 		datasource.ID,
 		datasource.Host,

@@ -1,0 +1,28 @@
+###
+GET http://localhost:8080/v1/backups?datasourceId=cf8669df-b559-4dfc-b23c-c2fe0a511560
+Content-Type: application/json
+Accept: application/json
+
+###
+GET http://localhost:8080/v1/backups/a9d4a5d5-df01-42e9-93a6-5f0d859309a2
+Content-Type: application/json
+Accept: application/json
+
+###
+DELETE  http://localhost:8080/v1/backups/a9d4a5d5-df01-42e9-93a6-5f0d859309a2
+Content-Type: application/json
+Accept: application/json
+
+### CREATE BACKUP
+POST http://localhost:8080/v1/backups
+Content-Type: application/json
+Accept: application/json
+
+{
+  "datasource_id": "6aed1767-af62-4601-bf6c-5db9f6e74104"
+}
+
+### RESTORE BACKUP
+POST  http://localhost:8080/v1/backups/a9d4a5d5-df01-42e9-93a6-5f0d859309a2/restore-backup?datasourceId=6aed1767-af62-4601-bf6c-5db9f6e74104
+Content-Type: application/json
+Accept: application/json

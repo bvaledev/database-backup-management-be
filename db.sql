@@ -1,4 +1,3 @@
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE datasources (
@@ -19,7 +18,8 @@ CREATE TABLE backups (
     datasource_id UUID NOT NULL REFERENCES datasources(id) ON DELETE CASCADE,
     trigger VARCHAR NOT NULL CHECK (trigger IN ('manual', 'cron')),
     status VARCHAR NOT NULL CHECK (status IN ('initialized', 'completed', 'failed')),
-    file_name VARCHAR,
+    file_path VARCHAR,
+    file_original_name VARCHAR,
     file_size BIGINT,
     started_at TIMESTAMP,
     finished_at TIMESTAMP,

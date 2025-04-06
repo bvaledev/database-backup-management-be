@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bvaledev/go-database-backaup-management/internal/datasource"
-	"github.com/bvaledev/go-database-backaup-management/internal/pkg/compression"
+	"github.com/bvaledev/database-backup-management-be/internal/domain/backup/contract"
+	"github.com/bvaledev/database-backup-management-be/internal/domain/backup/entity"
+	"github.com/bvaledev/database-backup-management-be/internal/pkg/compression"
+	"github.com/bvaledev/database-backup-management-be/internal/utils"
 )
 
 var (
@@ -19,28 +21,11 @@ var (
 
 type PostgresBackupService struct{}
 
-var _ DBBackupService = (*PostgresBackupService)(nil)
+var _ contract.IBackupService = (*PostgresBackupService)(nil)
 
 func NewPostgresBackupService() *PostgresBackupService {
 	service := &PostgresBackupService{}
-	service.generateBackupDir()
 	return service
-}
-
-// generateBackupDir garante que o diretório padrão de backups ("./backups") exista.
-//
-// Se o diretório ainda não existir, ele será criado com permissões 0755.
-// Caso ocorra um erro ao criar o diretório, a aplicação será encerrada com log fatal.
-//
-// Este método é utilizado internamente antes de operações de backup para garantir que o local de destino esteja preparado.
-//
-// Não retorna valores. Em caso de erro, finaliza a execução com log.Fatalf.
-func (pbs *PostgresBackupService) generateBackupDir() {
-	if _, err := os.Stat("./backups"); os.IsNotExist(err) {
-		if err := os.Mkdir("./backups", 0755); err != nil {
-			log.Fatalf("Erro ao criar o diretório de backups: %s", err)
-		}
-	}
 }
 
 // TestConnection verifica a conectividade com um banco de dados PostgreSQL utilizando o comando psql.
@@ -51,7 +36,7 @@ func (pbs *PostgresBackupService) generateBackupDir() {
 // Retorna:
 // - Um erro, caso a conexão falhe.
 // - nil, se a conexão for bem-sucedida.
-func (pbs *PostgresBackupService) TestConnection(ds datasource.Datasource) error {
+func (pbs *PostgresBackupService) TestConnection(ds entity.Datasource) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeOutInMinutes*time.Minute)
 	defer cancel()
 
@@ -90,41 +75,34 @@ func (pbs *PostgresBackupService) TestConnection(ds datasource.Datasource) error
 // Retorna:
 // - A saída gerada pelo comando pg_dump (string), útil para logs e debugging.
 // - Um erro, caso a execução do backup falhe ou a compactação não seja concluída com sucesso.
-func (pbs *PostgresBackupService) Backup(ds datasource.Datasource, outputFile string, format Mode) (string, error) {
-	pbs.generateBackupDir()
-
+func (pbs *PostgresBackupService) Backup(ds entity.Datasource, outputFile string, format contract.Mode) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeOutInMinutes*time.Minute)
 	defer cancel()
 
 	if err := pbs.TestConnection(ds); err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	var dumpFormat Mode
+	var dumpFormat contract.Mode
 	var tmpExt, finalExt string
 
 	switch format {
-	case Plain:
-		dumpFormat = Plain
+	case contract.Plain:
+		dumpFormat = contract.Plain
 		tmpExt = ".sql"
 		finalExt = ".sql.gz"
-	case Custom:
-		dumpFormat = Custom
+	case contract.Custom:
+		dumpFormat = contract.Custom
 		tmpExt = ".backup"
 		finalExt = ".backup.gz"
 	default:
-		return "", fmt.Errorf("formato inválido de backup: %s", format)
+		return "", "", fmt.Errorf("formato inválido de backup: %s", format)
 	}
 
-	tmpOutput := outputFile + tmpExt
-	finalOutput := outputFile + finalExt
+	fileName := utils.RemoveFileExtension(outputFile)
 
-	if !strings.HasPrefix(tmpOutput, "./backups/") {
-		tmpOutput = fmt.Sprintf("./backups/%s", tmpOutput)
-	}
-	if !strings.HasPrefix(finalOutput, "./backups/") {
-		finalOutput = fmt.Sprintf("./backups/%s", finalOutput)
-	}
+	tmpOutput := fileName + tmpExt
+	finalOutput := fileName + finalExt
 
 	cmd := pbs.buildCommand(
 		ds,
@@ -142,15 +120,14 @@ func (pbs *PostgresBackupService) Backup(ds datasource.Datasource, outputFile st
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("erro ao executar o backup: %s\n%s", err, string(output))
+		return "", "", fmt.Errorf("erro ao executar o backup: %s\n%s", err, string(output))
 	}
 
-	// Sempre gzip
 	if err := compression.CompressToGzip(tmpOutput, finalOutput); err != nil {
-		return string(output), fmt.Errorf("backup realizado, mas erro ao compactar: %w", err)
+		return string(output), "", fmt.Errorf("backup realizado, mas erro ao compactar: %w", err)
 	}
 
-	return string(output), nil
+	return string(output), finalOutput, nil
 }
 
 // ClearDatabase remove todos os schemas customizados de um banco de dados PostgreSQL,
@@ -181,7 +158,7 @@ func (pbs *PostgresBackupService) Backup(ds datasource.Datasource, outputFile st
 // Retorna:
 // - Um erro, caso a execução do comando SQL falhe.
 // - nil, se o banco de dados for limpo com sucesso.
-func (pbs *PostgresBackupService) ClearDatabase(ds datasource.Datasource) error {
+func (pbs *PostgresBackupService) ClearDatabase(ds entity.Datasource) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeOutInMinutes*time.Minute)
 	defer cancel()
 
@@ -236,7 +213,7 @@ func (pbs *PostgresBackupService) ClearDatabase(ds datasource.Datasource) error 
 // ⚠️ Somente arquivos com as extensões .sql.gz e .backup.gz são aceitos como válidos para restauração compactada.
 //
 // Antes da restauração, o banco de dados é limpo (todos os schemas são removidos, exceto os padrões).
-func (pbs *PostgresBackupService) Restore(ds datasource.Datasource, inputFile string) (string, error) {
+func (pbs *PostgresBackupService) Restore(ds entity.Datasource, inputFile string) (string, error) {
 	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
 		return "", fmt.Errorf("arquivo de backup não encontrado: %s", inputFile)
 	}
@@ -327,7 +304,7 @@ func (pbs *PostgresBackupService) Restore(ds datasource.Datasource, inputFile st
 // Retorna:
 // - Um erro, caso o comando falhe (ex: banco já exista ou falta de permissão).
 // - nil, se o banco for criado com sucesso.
-func (pbs *PostgresBackupService) CreateDatabase(ds datasource.Datasource) error {
+func (pbs *PostgresBackupService) CreateDatabase(ds entity.Datasource) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeOutInMinutes*time.Minute)
 	defer cancel()
 
@@ -360,7 +337,7 @@ func (pbs *PostgresBackupService) CreateDatabase(ds datasource.Datasource) error
 // Retorna:
 // - Um erro, caso o comando falhe (ex: banco inexistente, falta de permissão, ou conexões ativas).
 // - nil, se o banco for removido com sucesso.
-func (pbs *PostgresBackupService) DropDatabase(ds datasource.Datasource) error {
+func (pbs *PostgresBackupService) DropDatabase(ds entity.Datasource) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeOutInMinutes*time.Minute)
 	defer cancel()
 
@@ -394,7 +371,7 @@ func (pbs *PostgresBackupService) DropDatabase(ds datasource.Datasource) error {
 //
 // Retorna:
 // - Um ponteiro para exec.Cmd pronto para execução com ambiente e contexto configurados.
-func (*PostgresBackupService) buildCommand(ds datasource.Datasource, ctx context.Context, executable string, args ...string) *exec.Cmd {
+func (*PostgresBackupService) buildCommand(ds entity.Datasource, ctx context.Context, executable string, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, executable, args...)
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("PGPASSWORD=%s", ds.Password),
